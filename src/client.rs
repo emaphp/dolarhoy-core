@@ -3,6 +3,7 @@ use crate::error::ClientError;
 use crate::parser;
 use std::io;
 use std::net::ToSocketAddrs;
+use std::str::FromStr;
 use std::sync::Arc;
 use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -10,17 +11,31 @@ use tokio_rustls::rustls::{self, OwnedTrustAnchor};
 use tokio_rustls::TlsConnector;
 use unhtml::FromHtml;
 
+/// A client for fetching currency prices
 pub struct DolayHoyClient {}
 
 impl DolayHoyClient {
+    /// Returns a new DolayHoyClient instance
     pub fn new() -> Self {
         DolayHoyClient {}
     }
 
-    pub async fn fetch_cotizacion(
+    /// Fetches the prices of the given currency
+    /// Returns a Result wrapping a Box<dyn parser::PrecioCompraVenta<T>>
+    /// Where T could be either be f32 o f64
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use dolarhoy_core::{client, dolar, error};
+    ///
+    /// let client = client::DolayHoyClient::new();
+    /// let result = client.fetch_cotizacion::<f32>(dolar::Cotizacion::Oficial).await?;
+    /// ```
+    pub async fn fetch_cotizacion<T: Send + Copy + FromStr + 'static>(
         &self,
         cotizacion: dolar::Cotizacion,
-    ) -> Result<Box<dyn parser::PrecioCompraVenta>, ClientError> {
+    ) -> Result<Box<dyn parser::PrecioCompraVenta<T>>, ClientError> {
         use ClientError::*;
 
         let addr = (dolar::DOLAR_HOY_DOMAIN, 443)
