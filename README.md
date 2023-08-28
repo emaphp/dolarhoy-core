@@ -1,5 +1,7 @@
 A crate for fetching currency values from [dolarhoy.com](https://dolarhoy.com/).
 
+[![dolarhoy-core on Crates.io](https://img.shields.io/crates/v/dolarhoy-core.svg?color=brightgreen)](https://crates.io/crates/dolarhoy-core)
+[![Documentation](https://img.shields.io/docsrs/dolarhoy-core/latest.svg)](https://docs.rs/dolarhoy_core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/emaphp/dolarhoy-core/blob/master/LICENSE)
 ----------------
 
@@ -20,7 +22,7 @@ type Result<T> = std::result::Result<T, error::ClientError>;
 #[tokio::main]
 async fn main() -> Result<()> {
     let client = client::DolayHoyClient::new();
-    let result = client.fetch_cotizacion(dolar::Cotizacion::Blue).await?;
+    let result = client.fetch_cotizacion::<f32>(dolar::Cotizacion::Blue).await?;
 
     match result.precio_compra_venta() {
         (compra, None) => println!("{}: {}", result.title(), compra),
