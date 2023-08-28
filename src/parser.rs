@@ -3,6 +3,7 @@ use nom::{
     combinator::map_res,
     IResult,
 };
+use std::str::FromStr;
 use unhtml::{self, FromHtml};
 
 pub const HTTP_RESPONSE_STATUS_OK: u32 = 200;
@@ -59,6 +60,43 @@ pub fn http_response(input: &str) -> IResult<&str, HTTPResponse> {
 }
 
 #[derive(Debug)]
+pub struct PrecioCotizacion<T> {
+    pub precio: T,
+}
+
+impl<T: Send + FromStr> FromHtml for PrecioCotizacion<T> {
+    fn from_elements(select: unhtml::ElemIter) -> unhtml::Result<Self> {
+        let elements: Vec<_> = select.collect();
+
+        let el = elements.first().ok_or(unhtml::Error::TextParseError {
+            text: String::from("content"),
+            type_name: String::from("float"),
+            err: String::from("element not found"),
+        })?;
+
+        let content = el.inner_html();
+        let (_, valor): (&str, &str) = take_while::<_, _, nom::error::Error<&str>>(is_float)(
+            content.as_str(),
+        )
+        .map_err(|_: nom::Err<_>| unhtml::Error::TextParseError {
+            text: el.inner_html(),
+            type_name: String::from("float"),
+            err: String::from("parse error"),
+        })?;
+
+        let precio = valor
+            .parse::<T>()
+            .map_err(|_| unhtml::Error::TextParseError {
+                text: valor.to_string(),
+                type_name: String::from(std::any::type_name::<T>()),
+                err: String::from("conversion error"),
+            })?;
+
+        Ok(Self { precio })
+    }
+}
+
+#[derive(Debug)]
 pub struct CotizacionPrice {
     pub precio: f64,
 }
@@ -95,28 +133,28 @@ impl FromHtml for CotizacionPrice {
     }
 }
 
-pub type CompraVenta = (f64, Option<f64>);
+pub type CompraVenta<T> = (T, Option<T>);
 
-pub trait PrecioCompraVenta {
-    fn precio_compra_venta(&self) -> CompraVenta;
+pub trait PrecioCompraVenta<T> {
+    fn precio_compra_venta(&self) -> CompraVenta<T>;
     fn title(&self) -> String;
 }
 
 #[derive(Debug, FromHtml)]
 #[html(selector = ".container__data")]
-pub struct CotizacionCompraVenta {
+pub struct CotizacionCompraVenta<T: Send + FromStr> {
     #[html(selector = "h2.data__titulo", attr = "inner")]
     pub title: String,
 
     #[html(selector = "p:nth-child(1)")]
-    pub precio_compra: CotizacionPrice,
+    pub precio_compra: PrecioCotizacion<T>,
 
     #[html(selector = "p:nth-child(2)")]
-    pub precio_venta: CotizacionPrice,
+    pub precio_venta: PrecioCotizacion<T>,
 }
 
-impl PrecioCompraVenta for CotizacionCompraVenta {
-    fn precio_compra_venta(&self) -> CompraVenta {
+impl<T: Send + Copy + FromStr> PrecioCompraVenta<T> for CotizacionCompraVenta<T> {
+    fn precio_compra_venta(&self) -> CompraVenta<T> {
         (self.precio_compra.precio, Some(self.precio_venta.precio))
     }
 
@@ -127,16 +165,16 @@ impl PrecioCompraVenta for CotizacionCompraVenta {
 
 #[derive(Debug, FromHtml)]
 #[html(selector = ".container__data")]
-pub struct CotizacionValor {
+pub struct CotizacionValor<T: Send + FromStr> {
     #[html(selector = "h2.data__titulo", attr = "inner")]
     pub title: String,
 
     #[html(selector = "p:nth-child(1)")]
-    pub valor: CotizacionPrice,
+    pub valor: PrecioCotizacion<T>,
 }
 
-impl PrecioCompraVenta for CotizacionValor {
-    fn precio_compra_venta(&self) -> CompraVenta {
+impl<T: Send + Copy + FromStr> PrecioCompraVenta<T> for CotizacionValor<T> {
+    fn precio_compra_venta(&self) -> CompraVenta<T> {
         (self.valor.precio, None)
     }
 
@@ -212,13 +250,34 @@ mod tests {
         </div>
     "#;
 
-        let cotizacion = CotizacionCompraVenta::from_html(content);
+        let cotizacion = CotizacionCompraVenta::<f64>::from_html(content);
         assert!(cotizacion.is_ok());
 
         let cotizacion = cotizacion.unwrap();
         assert_eq!(cotizacion.title, "Dólar Blue");
         assert_eq!(cotizacion.precio_compra.precio, 566.00f64);
         assert_eq!(cotizacion.precio_venta.precio, 571.00f64);
+    }
+
+    #[test]
+    fn test_cotizacion_compraventa_parsef32() {
+        let content = r#"
+        <div class="container__data" style="text-align:center;width:100%">
+            <h2 class="data__titulo">Dólar Blue</h2>
+            <div class="data__valores">
+                <p>566.00<span>Compra</span></p>
+                <p>571.00<span>Venta</span></p>
+            </div>
+        </div>
+    "#;
+
+        let cotizacion = CotizacionCompraVenta::<f32>::from_html(content);
+        assert!(cotizacion.is_ok());
+
+        let cotizacion = cotizacion.unwrap();
+        assert_eq!(cotizacion.title, "Dólar Blue");
+        assert_eq!(cotizacion.precio_compra.precio, 566.00f32);
+        assert_eq!(cotizacion.precio_venta.precio, 571.00f32);
     }
 
     #[test]
@@ -231,7 +290,7 @@ mod tests {
         </div>
     "#;
 
-        let cotizacion = CotizacionCompraVenta::from_html(content);
+        let cotizacion = CotizacionCompraVenta::<f64>::from_html(content);
         assert!(cotizacion.is_err());
         assert_eq!(
             cotizacion.err().unwrap().to_string(),
@@ -251,7 +310,7 @@ mod tests {
         </div>
     "#;
 
-        let cotizacion = CotizacionCompraVenta::from_html(content);
+        let cotizacion = CotizacionCompraVenta::<f64>::from_html(content);
         assert!(cotizacion.is_err());
         assert_eq!(
             cotizacion.err().unwrap().to_string(),
@@ -270,12 +329,31 @@ mod tests {
         </div>
     "#;
 
-        let cotizacion = CotizacionValor::from_html(content);
+        let cotizacion = CotizacionValor::<f64>::from_html(content);
         assert!(cotizacion.is_ok());
 
         let cotizacion = cotizacion.unwrap();
         assert_eq!(cotizacion.title, "Dólar Crypto");
         assert_eq!(cotizacion.valor.precio, 29169.00f64);
+    }
+
+    #[test]
+    fn test_cotizacion_valor_parsef32() {
+        let content = r#"
+        <div class="container__data" style="text-align:center;width:100%">
+            <h2 class="data__titulo">Dólar Crypto</h2>
+            <div class="data__valores">
+                <p>29169.00<span>Valor</span></p>
+            </div>
+        </div>
+    "#;
+
+        let cotizacion = CotizacionValor::<f32>::from_html(content);
+        assert!(cotizacion.is_ok());
+
+        let cotizacion = cotizacion.unwrap();
+        assert_eq!(cotizacion.title, "Dólar Crypto");
+        assert_eq!(cotizacion.valor.precio, 29169.00f32);
     }
 
     #[test]
@@ -288,7 +366,7 @@ mod tests {
         </div>
     "#;
 
-        let cotizacion = CotizacionValor::from_html(content);
+        let cotizacion = CotizacionValor::<f64>::from_html(content);
         assert!(cotizacion.is_err());
         assert_eq!(
             cotizacion.err().unwrap().to_string(),
@@ -307,7 +385,7 @@ mod tests {
         </div>
     "#;
 
-        let cotizacion = CotizacionValor::from_html(content);
+        let cotizacion = CotizacionValor::<f64>::from_html(content);
         assert!(cotizacion.is_err());
         assert_eq!(
             cotizacion.err().unwrap().to_string(),
