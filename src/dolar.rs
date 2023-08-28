@@ -16,6 +16,8 @@ pub const DOLAR_HOY_ALIAS_CRYPTO: &[&str] =
     &[DOLAR_HOY_RESOURCE_CRYPTO, "crypto", "cripto", "bitcoin"];
 pub const DOLAR_HOY_ALIAS_SOLIDARIO: &[&str] = &[DOLAR_HOY_RESOURCE_SOLIDARIO, "solidario", "bna"];
 
+/// An enum representing actual currencies
+/// Not all currency types return values in ARS, some of them use USD
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Moneda {
     ARS,
@@ -23,6 +25,7 @@ pub enum Moneda {
 }
 
 impl ToString for Moneda {
+    /// Returns the currency long name
     fn to_string(&self) -> String {
         match self {
             Self::ARS => String::from("Peso Argentino"),
@@ -31,6 +34,7 @@ impl ToString for Moneda {
     }
 }
 
+/// An enum that represents all currency types supported
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Cotizacion {
     Blue,
@@ -42,6 +46,7 @@ pub enum Cotizacion {
 }
 
 impl Cotizacion {
+    /// Returns the URL containing the currency prices in HTML
     pub fn endpoint(&self) -> String {
         format!(
             "{}{}",
@@ -57,6 +62,7 @@ impl Cotizacion {
         )
     }
 
+    /// Returns the currency in which a price is based on
     pub fn moneda(&self) -> Moneda {
         match self {
             Self::Crypto => Moneda::USD,
@@ -66,6 +72,7 @@ impl Cotizacion {
 }
 
 impl ToString for Cotizacion {
+    /// Returns the name of the currency type
     fn to_string(&self) -> String {
         match self {
             Self::Blue => String::from("Blue"),
@@ -78,6 +85,8 @@ impl ToString for Cotizacion {
     }
 }
 
+/// Returns an Option<Cotizacion> from a &str describing a resource name
+/// Resource names are currency names that are supported in dolathoy.com (Ex: "dolar-mep")
 pub fn get_cotizacion_from_resource_name(name: &str) -> Option<Cotizacion> {
     match name {
         DOLAR_HOY_RESOURCE_BLUE => return Some(Cotizacion::Blue),
@@ -90,6 +99,9 @@ pub fn get_cotizacion_from_resource_name(name: &str) -> Option<Cotizacion> {
     }
 }
 
+/// Returns an Option<Cotizacion> from a &str describing a currency type
+/// This a more relaxed implementation of get_cotizacion_from_resource_name
+/// Use when trying to obtain a Cotizacion from user input
 pub fn get_cotizacion_from_alias(alias: &str) -> Option<Cotizacion> {
     if let Some(_) = DOLAR_HOY_ALIAS_BLUE.into_iter().find(|&s| *s == alias) {
         return Some(Cotizacion::Blue);

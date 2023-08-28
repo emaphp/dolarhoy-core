@@ -29,8 +29,23 @@ impl DolayHoyClient {
     /// ```
     /// use dolarhoy_core::{client, dolar, error};
     ///
-    /// let client = client::DolayHoyClient::new();
-    /// let result = client.fetch_cotizacion::<f32>(dolar::Cotizacion::Oficial).await?;
+    /// type Result<T> = std::result::Result<T, error::ClientError>;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<()> {
+    ///   let client = client::DolayHoyClient::new();
+    ///   let result = client.fetch_cotizacion::<f32>(dolar::Cotizacion::Oficial).await;
+    ///
+    ///   match result {
+    ///     Err(e) => { panic!("{}", e) },
+    ///     Ok(price) => {
+    ///       let buy_sell_price = price.precio_compra_venta();
+    ///       println!("Buy: {} / Sale: {}", buy_sell_price.0, buy_sell_price.1.unwrap());
+    ///     },
+    ///   }
+    ///
+    ///   Ok(())
+    /// }
     /// ```
     pub async fn fetch_cotizacion<T: Send + Copy + FromStr + 'static>(
         &self,

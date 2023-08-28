@@ -9,6 +9,7 @@ use unhtml::{self, FromHtml};
 pub const HTTP_RESPONSE_STATUS_OK: u32 = 200;
 pub const HTTP_RESPONSE_STATUS_NOT_FOUND: u32 = 404;
 
+/// A type for pulling the response status of a response
 #[derive(Debug, PartialEq)]
 pub struct HTTPResponse {
     pub protocol: String,
@@ -17,10 +18,12 @@ pub struct HTTPResponse {
 }
 
 impl HTTPResponse {
+    /// Returns true if the response was a 200
     pub fn status_ok(&self) -> bool {
         self.status == HTTP_RESPONSE_STATUS_OK
     }
 
+    /// Returns true if the response was a 404
     pub fn status_not_found(&self) -> bool {
         self.status == HTTP_RESPONSE_STATUS_NOT_FOUND
     }
@@ -42,6 +45,7 @@ fn from_int(input: &str) -> Result<u32, std::num::ParseIntError> {
     u32::from_str_radix(input, 10)
 }
 
+/// A helper function to retrieve a HTTPResponse from a response string
 pub fn http_response(input: &str) -> IResult<&str, HTTPResponse> {
     let (input, protocol) = take_while(is_alpha)(input)?;
     let (input, _) = tag("/")(input)?;
@@ -59,6 +63,7 @@ pub fn http_response(input: &str) -> IResult<&str, HTTPResponse> {
     ))
 }
 
+/// A type used to parse a currency price
 #[derive(Debug)]
 pub struct PrecioCotizacion<T> {
     pub precio: T,
@@ -96,50 +101,17 @@ impl<T: Send + FromStr> FromHtml for PrecioCotizacion<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct CotizacionPrice {
-    pub precio: f64,
-}
-
-impl FromHtml for CotizacionPrice {
-    fn from_elements(select: unhtml::ElemIter) -> unhtml::Result<Self> {
-        let elements: Vec<_> = select.collect();
-
-        let el = elements.first().ok_or(unhtml::Error::TextParseError {
-            text: String::from("content"),
-            type_name: String::from("float"),
-            err: String::from("element not found"),
-        })?;
-
-        let content = el.inner_html();
-        let (_, valor): (&str, &str) = take_while::<_, _, nom::error::Error<&str>>(is_float)(
-            content.as_str(),
-        )
-        .map_err(|_: nom::Err<_>| unhtml::Error::TextParseError {
-            text: el.inner_html(),
-            type_name: String::from("float"),
-            err: String::from("parse error"),
-        })?;
-
-        let precio = valor
-            .parse::<f64>()
-            .map_err(|_| unhtml::Error::TextParseError {
-                text: valor.to_string(),
-                type_name: String::from("f64"),
-                err: String::from("conversion error"),
-            })?;
-
-        Ok(Self { precio })
-    }
-}
-
+/// A basic type representing the buy/sell price of a currency
+/// Most types do have buy/sell price, except Crypto
 pub type CompraVenta<T> = (T, Option<T>);
 
+/// A common trait for returning currency prices
 pub trait PrecioCompraVenta<T> {
     fn precio_compra_venta(&self) -> CompraVenta<T>;
     fn title(&self) -> String;
 }
 
+/// A struct for parsing a currency type with buy and sell prices
 #[derive(Debug, FromHtml)]
 #[html(selector = ".container__data")]
 pub struct CotizacionCompraVenta<T: Send + FromStr> {
@@ -163,6 +135,7 @@ impl<T: Send + Copy + FromStr> PrecioCompraVenta<T> for CotizacionCompraVenta<T>
     }
 }
 
+/// A struct for parsing a currency type with only buy price
 #[derive(Debug, FromHtml)]
 #[html(selector = ".container__data")]
 pub struct CotizacionValor<T: Send + FromStr> {

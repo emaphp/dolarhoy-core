@@ -1,5 +1,6 @@
 use std::{error::Error, fmt, io};
 
+/// An enum describing all possibly errors during fetch
 #[derive(thiserror::Error)]
 pub enum ClientError {
     #[error("failed to make the request")]
