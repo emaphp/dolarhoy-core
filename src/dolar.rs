@@ -20,7 +20,9 @@ pub const DOLAR_HOY_ALIAS_SOLIDARIO: &[&str] = &[DOLAR_HOY_RESOURCE_SOLIDARIO, "
 /// Not all currency types return values in ARS, some of them use USD
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Moneda {
+    /// Argentine Peso
     ARS,
+    /// US Dollar
     USD,
 }
 
@@ -37,11 +39,17 @@ impl ToString for Moneda {
 /// An enum that represents all currency types supported
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum Cotizacion {
+    /// Dolar Blue
     Blue,
+    /// Dolar Oficial
     Oficial,
+    /// Dolar Bolsa (MEP)
     Bolsa,
+    /// Dolar Contado Con Liqui (CCL)
     ContadoConLiqui,
+    /// Dolar Crypto (Bitcoin)
     Crypto,
+    /// Dolar Solidario
     Solidario,
 }
 
