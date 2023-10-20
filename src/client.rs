@@ -11,6 +11,12 @@ use tokio_rustls::rustls::{self, OwnedTrustAnchor};
 use tokio_rustls::TlsConnector;
 use unhtml::FromHtml;
 
+/// A trait for restricting which values can be used to pull prices
+pub trait PrecioType: Send + Copy + FromStr + 'static {}
+
+impl PrecioType for f32 {}
+impl PrecioType for f64 {}
+
 /// A client for fetching currency prices
 pub struct DolayHoyClient {}
 
@@ -47,7 +53,7 @@ impl DolayHoyClient {
     ///   Ok(())
     /// }
     /// ```
-    pub async fn fetch_cotizacion<T: Send + Copy + FromStr + 'static>(
+    pub async fn fetch_cotizacion<T: PrecioType>(
         &self,
         cotizacion: dolar::Cotizacion,
     ) -> Result<Box<dyn parser::PrecioCompraVenta<T>>, ClientError> {
