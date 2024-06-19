@@ -115,6 +115,9 @@ impl DolayHoyClient {
                     Cotizacion::Crypto => {
                         return Ok(Box::new(parser::CotizacionValor::from_html(content)?))
                     }
+                    Cotizacion::Tarjeta => {
+                        return Ok(Box::new(parser::CotizacionValor::from_html(content)?))
+                    }
                     _ => return Ok(Box::new(parser::CotizacionCompraVenta::from_html(content)?)),
                 }
             }

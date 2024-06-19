@@ -7,6 +7,7 @@ pub const DOLAR_HOY_RESOURCE_BOLSA: &str = "dolar-mep";
 pub const DOLAR_HOY_RESOURCE_CCL: &str = "dolar-contado-con-liquidacion";
 pub const DOLAR_HOY_RESOURCE_CRYPTO: &str = "bitcoin-usd";
 pub const DOLAR_HOY_RESOURCE_SOLIDARIO: &str = "banco-nacion";
+pub const DOLAR_HOY_RESOURCE_TARJETA: &str = "dolar-tarjeta";
 
 pub const DOLAR_HOY_ALIAS_BLUE: &[&str] = &[DOLAR_HOY_RESOURCE_BLUE, "blue"];
 pub const DOLAR_HOY_ALIAS_OFICIAL: &[&str] = &[DOLAR_HOY_RESOURCE_OFICIAL, "oficial"];
@@ -15,6 +16,7 @@ pub const DOLAR_HOY_ALIAS_CCL: &[&str] = &[DOLAR_HOY_RESOURCE_CCL, "ccl", "conta
 pub const DOLAR_HOY_ALIAS_CRYPTO: &[&str] =
     &[DOLAR_HOY_RESOURCE_CRYPTO, "crypto", "cripto", "bitcoin"];
 pub const DOLAR_HOY_ALIAS_SOLIDARIO: &[&str] = &[DOLAR_HOY_RESOURCE_SOLIDARIO, "solidario", "bna"];
+pub const DOLAR_HOY_ALIAS_TARJETA: &[&str] = &[DOLAR_HOY_RESOURCE_TARJETA, "tarjeta"];
 
 /// An enum representing actual currencies
 /// Not all currency types return values in ARS, some of them use USD
@@ -51,6 +53,8 @@ pub enum Cotizacion {
     Crypto,
     /// Dolar Solidario
     Solidario,
+    /// Dolar Tarjeta
+    Tarjeta,
 }
 
 impl Cotizacion {
@@ -66,6 +70,7 @@ impl Cotizacion {
                 Self::ContadoConLiqui => DOLAR_HOY_RESOURCE_CCL,
                 Self::Crypto => DOLAR_HOY_RESOURCE_CRYPTO,
                 Self::Solidario => DOLAR_HOY_RESOURCE_SOLIDARIO,
+                Self::Tarjeta => DOLAR_HOY_RESOURCE_TARJETA,
             }
         )
     }
@@ -89,6 +94,7 @@ impl ToString for Cotizacion {
             Self::ContadoConLiqui => String::from("Contado Con Liqui"),
             Self::Crypto => String::from("Crypto"),
             Self::Solidario => String::from("Solidario"),
+            Self::Tarjeta => String::from("Tarjeta"),
         }
     }
 }
@@ -103,6 +109,7 @@ pub fn get_cotizacion_from_resource_name(name: &str) -> Option<Cotizacion> {
         DOLAR_HOY_RESOURCE_CCL => return Some(Cotizacion::ContadoConLiqui),
         DOLAR_HOY_RESOURCE_CRYPTO => return Some(Cotizacion::Crypto),
         DOLAR_HOY_RESOURCE_SOLIDARIO => return Some(Cotizacion::Solidario),
+        DOLAR_HOY_RESOURCE_TARJETA => return Some(Cotizacion::Tarjeta),
         _ => return None,
     }
 }
@@ -135,6 +142,10 @@ pub fn get_cotizacion_from_alias(alias: &str) -> Option<Cotizacion> {
         return Some(Cotizacion::Solidario);
     }
 
+    if let Some(_) = DOLAR_HOY_ALIAS_TARJETA.into_iter().find(|&s| *s == alias) {
+        return Some(Cotizacion::Tarjeta);
+    }
+
     None
 }
 
@@ -150,6 +161,7 @@ mod tests {
         assert_eq!(Cotizacion::ContadoConLiqui.moneda(), Moneda::ARS);
         assert_eq!(Cotizacion::Crypto.moneda(), Moneda::USD);
         assert_eq!(Cotizacion::Solidario.moneda(), Moneda::ARS);
+        assert_eq!(Cotizacion::Tarjeta.moneda(), Moneda::ARS);
     }
 
     #[test]
@@ -179,6 +191,10 @@ mod tests {
             get_cotizacion_from_resource_name("banco-nacion"),
             Some(Cotizacion::Solidario)
         );
+        assert_eq!(
+            get_cotizacion_from_resource_name("dolar-tarjeta"),
+            Some(Cotizacion::Tarjeta)
+        );
     }
 
     #[test]
@@ -197,6 +213,10 @@ mod tests {
         assert_eq!(
             Cotizacion::Solidario.endpoint(),
             "/i/cotizaciones/banco-nacion"
+        );
+        assert_eq!(
+            Cotizacion::Tarjeta.endpoint(),
+            "/i/cotizaciones/dolar-tarjeta"
         );
     }
 
@@ -280,6 +300,18 @@ mod tests {
         assert_eq!(
             get_cotizacion_from_alias("bna"),
             Some(Cotizacion::Solidario)
+        );
+    }
+
+    #[test]
+    fn test_get_cotizacion_from_alias_tarjeta() {
+        assert_eq!(
+            get_cotizacion_from_alias("dolar-tarjeta"),
+            Some(Cotizacion::Tarjeta)
+        );
+        assert_eq!(
+            get_cotizacion_from_alias("tarjeta"),
+            Some(Cotizacion::Tarjeta)
         );
     }
 }
