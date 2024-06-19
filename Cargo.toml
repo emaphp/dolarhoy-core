@@ -1,8 +1,9 @@
 [package]
 name = "dolarhoy-core"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 description = "A crate for fetching currency values from dolarhoy.com"
+keywords = ["dolarhoy", "client"]
 license = "MIT"
 repository = "https://github.com/emaphp/dolarhoy-core/"
 
@@ -10,9 +11,9 @@ repository = "https://github.com/emaphp/dolarhoy-core/"
 
 [dependencies]
 thiserror = "1"
-hyper = { version = "1.0.0-rc.3", features = ["full"] }
+hyper = { version = "1.3", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
-tokio-rustls = "0.24.1"
-webpki-roots = "0.25.2"
-nom = "7.1.3"
+tokio-rustls = "0.26"
+webpki-roots = "0.26"
+nom = "7.1"
 unhtml = { version = "0.8", features = ["derive"]}

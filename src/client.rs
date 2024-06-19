@@ -7,7 +7,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::io::{split, AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio_rustls::rustls::{self, OwnedTrustAnchor};
+use tokio_rustls::rustls::{self, pki_types};
 use tokio_rustls::TlsConnector;
 use unhtml::FromHtml;
 
@@ -68,23 +68,17 @@ impl DolayHoyClient {
         let uri = cotizacion.endpoint();
         let content = format!("GET {} HTTP/1.0\r\nHost: {}\r\n\r\n", uri, domain);
 
-        let mut root_cert_store = rustls::RootCertStore::empty();
-        root_cert_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS[..].iter().map(|ta| {
-            OwnedTrustAnchor::from_subject_spki_name_constraints(
-                ta.subject,
-                ta.spki,
-                ta.name_constraints,
-            )
-        }));
+        let root_store = rustls::RootCertStore {
+            roots: webpki_roots::TLS_SERVER_ROOTS.iter().cloned().collect(),
+        };
 
         let config = rustls::ClientConfig::builder()
-            .with_safe_defaults()
-            .with_root_certificates(root_cert_store)
+            .with_root_certificates(root_store)
             .with_no_client_auth();
         let connector = TlsConnector::from(Arc::new(config));
         let stream = TcpStream::connect(&addr).await?;
 
-        let domain = rustls::ServerName::try_from(domain)
+        let domain = pki_types::ServerName::try_from(domain)
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid dnsname"))?;
 
         let mut stream = connector.connect(domain, stream).await?;
